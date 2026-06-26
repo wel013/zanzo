@@ -20,6 +20,7 @@ async function openSection(name) {
   _lastSection = name;
   const res  = await fetch(`./data/${name}.json`);
   const data = await res.json();
+  console.log('fetched data:', data); // ← add
   showModal(name, data);
 }
 
@@ -327,4 +328,17 @@ async function deleteEntry(section, id) {
   });
 
   openSection(section);
+}
+
+function loadMore() {
+  const body  = document.getElementById('pip-body');
+  const batch = _data.slice(_offset, _offset + PAGE);
+  console.log('loadMore called, batch:', batch); // ← add
+  if (!batch.length) return;
+
+  batch.forEach(e => {
+    console.log('rendering entry:', e); // ← add
+    body.insertAdjacentHTML('beforeend', renderEntry(_name, e));
+  });
+  _offset += PAGE;
 }
