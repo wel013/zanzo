@@ -76,7 +76,9 @@ document.getElementById('pip-body').addEventListener('scroll', function () {
 function renderEntry(name, e) {
  if (name === 'log') return `
     <div class="pip-entry">
-      <div class="pip-entry-date">${e.date}</div>
+      <div class="pip-entry-date">${e.date}
+       ${_authenticated ? `<button class="del-btn" onclick="deleteEntry('log', ${e.id})">[ del ]</button>` : ''}
+      </div>
       <div class="pip-entry-title">${e.title}</div>
       ${e.from1001 ? `<div class="pip-entry-field">🎵 ${e.from1001}</div>` : ''}
       ${e.drinks   ? `<div class="pip-entry-field">🥃 ${e.drinks}</div>`   : ''}
@@ -86,7 +88,9 @@ function renderEntry(name, e) {
 
  if (name === 'music') return `
   <div class="pip-entry">
-    <div class="pip-entry-date">${e.date}</div>
+    <div class="pip-entry-date">${e.date}
+     ${_authenticated ? `<button class="del-btn" onclick="deleteEntry('music', ${e.id})">[ del ]</button>` : ''}
+    </div>
     ${e.title    ? `<div class="pip-entry-title">${e.title}</div>`      : ''}
     ${e.artist   ? `<div class="pip-entry-field">${e.artist}</div>`     : ''}
     ${e.thoughts ? `<div class="pip-entry-content">${e.thoughts}</div>` : ''}
@@ -94,14 +98,18 @@ function renderEntry(name, e) {
 
   if (name === 'thoughts') return `
     <div class="pip-entry">
-      <div class="pip-entry-date">${e.date}</div>
+      <div class="pip-entry-date">${e.date}
+       ${_authenticated ? `<button class="del-btn" onclick="deleteEntry('thoughts', ${e.id})">[ del ]</button>` : ''}
+      </div>
       <div class="pip-entry-title">${e.title}</div>
       ${e.content ? `<div class="pip-entry-content">${e.content}</div>` : ''}
     </div>`;
 
   if (name === 'films') return `
     <div class="pip-entry">
-      <div class="pip-entry-date">${e.date}</div>
+      <div class="pip-entry-date">${e.date}
+       ${_authenticated ? `<button class="del-btn" onclick="deleteEntry('films', ${e.id})">[ del ]</button>` : ''}
+      </div>
       <div class="pip-entry-title">${e.title}</div>
       ${e.reason   ? `<div class="pip-entry-field">★ ${e.reason}</div>`      : ''}
       ${e.thoughts  ? `<div class="pip-entry-content">${e.thoughts}</div>`     : ''}
@@ -109,7 +117,9 @@ function renderEntry(name, e) {
 
   if (name === 'books') return `
     <div class="pip-entry">
-      <div class="pip-entry-date">${e.date}</div>
+      <div class="pip-entry-date">${e.date}
+       ${_authenticated ? `<button class="del-btn" onclick="deleteEntry('books', ${e.id})">[ del ]</button>` : ''}
+      </div>
       <div class="pip-entry-title">${e.title}</div>
       ${e.reason   ? `<div class="pip-entry-field">★ ${e.reason}</div>`      : ''}
     </div>`;
@@ -283,3 +293,38 @@ function promptForPAT() {
 window.addEventListener('load', () => {
   if (window.location.hash === '#admin') openAdmin();
 });
+
+async function deleteEntry(section, id) {
+  if (!confirm('delete this entry?')) return;
+
+  const token = localStorage.getItem('gh_pat');
+  if (!token) return;
+
+  const path   = `data/${section}.json`;
+  const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`;
+
+  const getRes   = await fetch(apiUrl, {
+    headers: { 'Authorization': `token ${token}` }
+  });
+  const fileData = await getRes.json();
+  const current  = JSON.parse(new TextDecoder().decode(
+    Uint8Array.from(atob(fileData.content.replace(/\n/g,'')), c => c.charCodeAt(0))
+  ));
+
+  const updated = current.filter(e => e.id !== id);
+
+  await fetch(apiUrl, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `token ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      message: `delete entry from ${section}`,
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(updated, null, 2)))),
+      sha: fileData.sha
+    })
+  });
+
+  openSection(section);
+}
