@@ -392,3 +392,120 @@ async function sendMessage() {
     status.textContent = '// failed to send_';
   }
 }
+
+/* ── WEATHER ── */
+const RAIN_CODES = [176,185,263,266,281,284,293,296,299,302,305,308,
+                    311,314,317,320,353,356,359,362,365,386,389];
+const CLOUD_CODES = [116,119,122,143,248,260];
+
+let weatherCanvas = null;
+let cloudInterval = null;
+
+async function initWeather() {
+  try {
+    const res  = await fetch('https://wttr.in/Tokyo?format=j1');
+    const data = await res.json();
+    const code = parseInt(data.current_condition[0].weatherCode);
+    console.log('weather code:', code);
+
+    if (RAIN_CODES.includes(code))        startPixelRain();
+    else if (CLOUD_CODES.includes(code))  startPixelClouds();
+    // sunny (113) = do nothing
+  } catch(err) {
+    console.log('weather unavailable:', err);
+  }
+}
+
+function startPixelRain() {
+  const scene = document.querySelector('.scene');
+  weatherCanvas = document.createElement('canvas');
+  weatherCanvas.id = 'weather-canvas';
+  scene.appendChild(weatherCanvas);
+
+  const resize = () => {
+    weatherCanvas.width  = scene.offsetWidth;
+    weatherCanvas.height = scene.offsetHeight;
+  };
+  resize();
+
+  const drops = Array.from({length: 90}, () => ({
+    x:       Math.random() * weatherCanvas.width,
+    y:       Math.random() * weatherCanvas.height,
+    speed:   1.5 + Math.random() * 2.5,
+    opacity: 0.2 + Math.random() * 0.35
+  }));
+
+  function draw() {
+    const ctx = weatherCanvas.getContext('2d');
+    ctx.clearRect(0, 0, weatherCanvas.width, weatherCanvas.height);
+    drops.forEach(d => {
+      ctx.fillStyle = `rgba(120,180,255,${d.opacity})`;
+      ctx.fillRect(Math.round(d.x), Math.round(d.y), 2, 6); // pixel drop
+      d.y += d.speed;
+      if (d.y > weatherCanvas.height) {
+        d.y = -10;
+        d.x = Math.random() * weatherCanvas.width;
+      }
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+function startPixelClouds() {
+  const scene = document.querySelector('.scene');
+
+  function spawnCloud() {
+    const cloud = document.createElement('div');
+    cloud.className = 'pixel-cloud';
+    cloud.style.top      = `${4 + Math.random() * 20}%`;
+    cloud.style.left     = '-120px';
+    const dur = 25 + Math.random() * 35;
+    cloud.style.animationDuration = `${dur}s`;
+    scene.appendChild(cloud);
+    cloud.addEventListener('animationend', () => cloud.remove());
+  }
+
+  spawnCloud();
+  cloudInterval = setInterval(spawnCloud, 9000);
+}
+
+/* ── EARTHQUAKE ── */
+let _quaking = false;
+
+async function checkEarthquake() {
+  try {
+    const res  = await fetch('https://api.p2pquake.net/v2/jma/quake?limit=1&codes=551');
+    const data = await res.json();
+    if (!data.length) return;
+
+    const raw  = data[0]?.earthquake?.time; // "2026/06/26 12:00:00"
+    if (!raw) return;
+
+    const quakeTime = new Date(raw.replace(/\//g, '-').replace(' ', 'T') + '+09:00');
+    const diffSec   = (new Date() - quakeTime) / 1000;
+
+    if (diffSec < 120 && !_quaking) triggerShake();
+  } catch(err) {
+    console.log('quake check failed:', err);
+  }
+}
+
+function triggerShake(duration = 90000) {
+  _quaking = true;
+  document.body.classList.add('quaking');
+  console.log('🌍 earthquake detected — shaking for', duration/1000, 'seconds');
+  setTimeout(() => {
+    document.body.classList.remove('quaking');
+    _quaking = false;
+  }, duration);
+}
+
+/* ── INIT ── */
+window.addEventListener('load', () => {
+  if (window.location.hash === '#admin') openAdmin();
+  initWeather();
+  checkEarthquake();
+  setInterval(checkEarthquake, 30000); // check every 30s
+  setInterval(initWeather, 1800000);   // refresh weather every 30min
+});
