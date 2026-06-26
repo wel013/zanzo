@@ -13,7 +13,11 @@ let _offset  = 0;
 let _loading = false;
 const PAGE   = 5;
 
+
+let _lastSection = '';
+
 async function openSection(name) {
+  _lastSection = name;
   const res  = await fetch(`./data/${name}.json`);
   const data = await res.json();
   showModal(name, data);
@@ -80,13 +84,13 @@ function renderEntry(name, e) {
       ${e.content  ? `<div class="pip-entry-content">${e.content}</div>`   : ''}
     </div>`;
 
-  if (name === 'music') return `
-    <div class="pip-entry">
-      <div class="pip-entry-date">${e.date}</div>
-      ${e.title  ? `<div class="pip-entry-field">${e.artist}</div>`    : ''}
-      ${e.artist  ? `<div class="pip-entry-field">★ ${e.artist}</div>` : ''}
-      ${e.thoughts ? `<div class="pip-entry-content">${e.thoughts}</div>` : ''}
-    </div>`;
+ if (name === 'music') return `
+  <div class="pip-entry">
+    <div class="pip-entry-date">${e.date}</div>
+    ${e.title    ? `<div class="pip-entry-title">${e.title}</div>`      : ''}
+    ${e.artist   ? `<div class="pip-entry-field">${e.artist}</div>`     : ''}
+    ${e.thoughts ? `<div class="pip-entry-content">${e.thoughts}</div>` : ''}
+  </div>`;
 
   if (name === 'thoughts') return `
     <div class="pip-entry">
@@ -132,14 +136,16 @@ let _authenticated = false;
 
 // press Shift+Alt+A to open admin
 document.addEventListener('keydown', e => {
-  if (e.shiftKey && e.altKey && e.key === 'A') openAdmin();
+  if (e.shiftKey && e.altKey && e.code === 'KeyA') openAdmin();
 });
 
 function openAdmin() {
-  // if already authenticated this session, skip to form
   if (_authenticated) {
     document.getElementById('auth-step').style.display  = 'none';
     document.getElementById('entry-step').style.display = 'block';
+    if (_lastSection) {
+      document.getElementById('entry-section').value = _lastSection;
+    }
     updateFormFields();
   } else {
     document.getElementById('auth-step').style.display  = 'block';
@@ -178,7 +184,7 @@ document.getElementById('auth-input').addEventListener('keydown', e => {
 // fields change depending on which section is selected
 const FIELDS = {
   log:      ['date','title','from1001','drinks','smoke','content'],
-  music:    ['date','title','artist','rating','content'],
+  music:    ['date','title','artist','thoughts'],
   films:    ['date','title','reason','thoughts'],
   books:    ['date','title','reason'],
   thoughts: ['date','title','content']
@@ -187,12 +193,15 @@ const FIELDS = {
 function updateFormFields() {
   const section = document.getElementById('entry-section').value;
   const fields  = FIELDS[section];
+  const today   = new Date().toISOString().split('T')[0];
   document.getElementById('dynamic-fields').innerHTML = fields.map(f => `
     <div class="admin-field">
       <label>// ${f.toUpperCase()}</label>
-      ${f === 'content' || f === 'thoughts' || f === 'reason'
-        ? `<textarea id="field-${f}" rows="3" placeholder="${f}..."></textarea>`
-        : `<input id="field-${f}" type="text" placeholder="${f}">`
+      ${f === 'date'
+        ? `<input id="field-${f}" type="date" value="${today}">`
+        : f === 'content' || f === 'thoughts' || f === 'reason'
+          ? `<textarea id="field-${f}" rows="3" placeholder="${f}..."></textarea>`
+          : `<input id="field-${f}" type="text" placeholder="${f}">`
       }
     </div>
   `).join('');
@@ -226,7 +235,9 @@ async function saveEntry() {
       headers: { 'Authorization': `token ${token}` }
     });
     const fileData = await getRes.json();
-    const current  = JSON.parse(decodeURIComponent(escape(atob(fileData.content.replace(/\n/g,'')))));
+    const current  = JSON.parse(new TextDecoder().decode(
+  Uint8Array.from(atob(fileData.content.replace(/\n/g,'')), c => c.charCodeAt(0))
+));
     current.push(entry);
 
     // commit updated file
@@ -243,16 +254,20 @@ async function saveEntry() {
       })
     });
 
-    if (putRes.ok) {
-      status.textContent = '// saved ✓';
-      setTimeout(() => { status.style.display = 'none'; }, 2000);
-      // clear form
-      fields.forEach(f => {
-        const el = document.getElementById(`field-${f}`);
-        if (el) el.value = '';
-      });
-    } else {
+  if (putRes.ok) {
+  status.textContent = '// saved ✓';
+  fields.forEach(f => {
+    const el = document.getElementById(`field-${f}`);
+    if (el) el.value = '';
+  });
+  setTimeout(() => {
+    status.style.display = 'none';
+    document.getElementById('admin-overlay').classList.remove('open');
+    if (_lastSection) openSection(_lastSection);
+  }, 1200);
+} else {
       status.textContent = '// error — check PAT permissions';
+      // console.error('GitHub error:', errData); // ← add this
     }
   } catch(err) {
     console.error(err);
@@ -265,3 +280,6 @@ function promptForPAT() {
   if (pat) localStorage.setItem('gh_pat', pat);
   return pat;
 }
+window.addEventListener('load', () => {
+  if (window.location.hash === '#admin') openAdmin();
+});
