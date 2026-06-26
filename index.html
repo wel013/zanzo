@@ -474,7 +474,71 @@ body {
   color: var(--accent);
 }
 .del-btn:hover { opacity: 1; }
+#msg-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(6px);
+}
+#msg-overlay.open { display: flex; }
 
+#msg-screen {
+  position: relative;
+  width: min(480px, 92vw);
+  background: #08020d;
+  border: 1px solid #b8a0ff;
+  border-radius: 6px;
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+  color: #b8a0ff;
+  box-shadow: 0 0 40px rgba(184,160,255,0.15);
+}
+#msg-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(184,160,255,0.25);
+  font-size: 14px;
+  letter-spacing: 3px;
+}
+#msg-header button {
+  background: none;
+  border: 1px solid rgba(184,160,255,0.35);
+  color: #b8a0ff;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+#msg-header button:hover { background: rgba(184,160,255,0.1); }
+#msg-body { padding: 20px 16px; }
+.msg-intro {
+  font-size: 11px;
+  opacity: 0.4;
+  letter-spacing: 2px;
+  margin-bottom: 18px;
+}
+#msg-screen .admin-field input,
+#msg-screen .admin-field textarea {
+  color: #b8a0ff;
+  border-color: rgba(184,160,255,0.22);
+  background: rgba(184,160,255,0.04);
+}
+#msg-screen .admin-field input:focus,
+#msg-screen .admin-field textarea:focus {
+  border-color: rgba(184,160,255,0.65);
+}
+#msg-screen .admin-btn {
+  color: #b8a0ff;
+  border-color: rgba(184,160,255,0.32);
+  background: rgba(184,160,255,0.05);
+}
+#msg-screen .admin-btn:hover { background: rgba(184,160,255,0.12); }
 </style>
 </head>
 <body>
@@ -577,6 +641,7 @@ body {
       </svg>
     </div>
 
+
     <span class="icon-lbl" style="color:#00f5ff;">films</span>
   </div>
 
@@ -613,7 +678,37 @@ body {
       <span>> AUTHENTICATE_</span>
       <button onclick="closeAdmin()">[ X ]</button>
     </div>
-
+<div class="icon-zone" style="left:20%; top:20%; --sz:70px;" onclick="openMessage()">
+  <div class="sparkle-wrap">
+    <span class="spark s1" style="color:#b8a0ff; animation-delay:0.2s;">✦</span>
+    <span class="spark s2" style="color:#d4c0ff; animation-delay:1.4s;">✦</span>
+    <span class="spark s3" style="color:#b8a0ff; animation-delay:2.6s;">✧</span>
+  </div>
+</div>
+<div id="msg-overlay" onclick="closeMsgOverlay(event)">
+  <div id="msg-screen">
+    <div id="pip-scanlines"></div>
+    <div id="msg-header">
+      <span>> LEAVE A MESSAGE_</span>
+      <button onclick="closeMsgOverlay()">[ X ]</button>
+    </div>
+    <div id="msg-body">
+      <p class="msg-intro">// say anything. i might read it.</p>
+      <div id="msg-form">
+        <div class="admin-field">
+          <label>// FROM (optional)</label>
+          <input id="msg-from" type="text" placeholder="stranger, friend, ghost..."/>
+        </div>
+        <div class="admin-field">
+          <label>// MESSAGE</label>
+          <textarea id="msg-text" rows="4" placeholder="..."></textarea>
+        </div>
+        <div id="msg-status" style="display:none; font-size:11px; letter-spacing:2px; margin-bottom:12px;"></div>
+        <button class="admin-btn" onclick="sendMessage()">[ SEND ]</button>
+      </div>
+    </div>
+  </div>
+</div>
     <div id="admin-body">
 
       <!-- step 1: password -->

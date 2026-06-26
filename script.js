@@ -342,3 +342,53 @@ function loadMore() {
   });
   _offset += PAGE;
 }
+
+// ← replace with your formspree endpoint
+const FORMSPREE = 'https://formspree.io/f/mpqgpvap';
+
+function openMessage() {
+  document.getElementById('msg-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('msg-from')?.focus(), 100);
+}
+
+function closeMsgOverlay(e) {
+  if (!e || e.target === document.getElementById('msg-overlay')) {
+    document.getElementById('msg-overlay').classList.remove('open');
+    document.getElementById('msg-status').style.display = 'none';
+    document.getElementById('msg-from').value = '';
+    document.getElementById('msg-text').value = '';
+  }
+}
+
+async function sendMessage() {
+  const from = document.getElementById('msg-from').value.trim();
+  const text = document.getElementById('msg-text').value.trim();
+  const status = document.getElementById('msg-status');
+
+  if (!text) return;
+
+  status.style.display = 'block';
+  status.textContent = '// sending_▌';
+  status.style.color = '#b8a0ff';
+
+  try {
+    const res = await fetch(FORMSPREE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: from || 'anonymous', message: text })
+    });
+
+    if (res.ok) {
+      status.textContent = '// message sent. i\'ll read it.';
+      document.getElementById('msg-from').value = '';
+      document.getElementById('msg-text').value = '';
+      setTimeout(() => {
+        closeMsgOverlay();
+      }, 2000);
+    } else {
+      status.textContent = '// something went wrong. try again.';
+    }
+  } catch(err) {
+    status.textContent = '// failed to send_';
+  }
+}
