@@ -81,9 +81,9 @@ function renderEntry(name, e) {
        ${_authenticated ? `<button class="del-btn" onclick="deleteEntry('log', ${e.id})">[ del ]</button>` : ''}
       </div>
       <div class="pip-entry-title">${e.title}</div>
-      ${e.from1001 ? `<div class="pip-entry-field">🎵 ${e.from1001}</div>` : ''}
-      ${e.drinks   ? `<div class="pip-entry-field">🥃 ${e.drinks}</div>`   : ''}
-      ${e.smoke    ? `<div class="pip-entry-field">🌿 ${e.smoke}</div>`    : ''}
+      ${e.from1001 ? `<div class="pip-entry-field"> ${e.from1001}</div>` : ''}
+      ${e.drinks   ? `<div class="pip-entry-field"> ${e.drinks}</div>`   : ''}
+      ${e.smoke    ? `<div class="pip-entry-field"> ${e.smoke}</div>`    : ''}
       ${e.content  ? `<div class="pip-entry-content">${e.content}</div>`   : ''}
     </div>`;
 
